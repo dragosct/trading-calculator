@@ -190,6 +190,10 @@
             const eurUsdRate = data.rates.USD;
             const eurGbpRate = data.rates.GBP;
             const gbpUsdRate = eurUsdRate / eurGbpRate;
+          
+            console.log('EUR/USD rate:', eurUsdRate);
+            console.log('EUR/GBP rate:', eurGbpRate);
+            console.log('GBP/USD rate:', gbpUsdRate);
 
             // Update the rate display fields
             if (document.getElementById('eurUsdRow').style.display !== "none") {
@@ -219,21 +223,13 @@
               const pipSize = parseFloat(document.getElementById('pipSize').value);
               let units;
               
-              if (instrument === "EUR/USD") {
-                if (depositCurrency === "EUR") {
-                  units = moneyAtRisk / (stopLoss * pipSize);
-                } else {
-                  // For USD account, no need to convert as risk is already in USD
-                  units = moneyAtRisk / (stopLoss * pipSize);
-                }
-              } else { // GBP/USD
-                if (depositCurrency === "EUR") {
-                  // Convert EUR to USD using EUR/USD rate, then calculate units
-                  units = (moneyAtRisk * eurUsdRate) / (stopLoss * pipSize);
-                } else {
-                  // USD account, no conversion needed
-                  units = moneyAtRisk / (stopLoss * pipSize);
-                }
+              // For both EUR/USD and GBP/USD, the calculation is the same
+              if (depositCurrency === "EUR") {
+                // Convert EUR to USD using EUR/USD rate, then calculate units
+                units = (moneyAtRisk * eurUsdRate) / (stopLoss * pipSize);
+              } else {
+                // USD account, no conversion needed
+                units = moneyAtRisk / (stopLoss * pipSize);
               }
               
               const lots = units / 100000;
