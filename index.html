@@ -16,6 +16,7 @@
     <div class="mb-4 flex items-center">
       <label for="instrument" class="w-60 font-medium text-right mr-4">Instrument:</label>
       <select id="instrument" onchange="updateVisibility()" class="border rounded px-3 py-1 w-full">
+        <option value="EUR/USD">EUR/USD (Forex)</option>
         <option value="GBP/USD">GBP/USD (Forex)</option>
         <option value="NAS100USD">NAS100USD (Index)</option>
         <option value="UK100GBP">UK100GBP (Index)</option>
@@ -41,7 +42,7 @@
 
     <!-- Forex-only Input: Pip Size -->
     <div class="mb-4 flex items-center" id="pipRow">
-      <label for="pipSize" class="w-60 font-medium text-right mr-4">GBP/USD 1 Pip Size:</label>
+      <label for="pipSize" class="w-60 font-medium text-right mr-4" id="pipSizeLabel">EUR/USD 1 Pip Size:</label>
       <input type="number" id="pipSize" step="0.0000001" value="0.0001" class="border rounded px-3 py-1 w-full" />
     </div>
 
@@ -49,6 +50,13 @@
     <div class="mb-4 flex items-center" id="eurUsdRow">
       <label for="eurUsdPrice" class="w-60 font-medium text-right mr-4">EUR/USD Price:</label>
       <input type="number" id="eurUsdPrice" step="any" value="1.00000" readonly
+        class="border rounded px-3 py-1 w-full" />
+    </div>
+
+    <!-- GBP Rate Input -->
+    <div class="mb-4 flex items-center" id="gbpRateRow">
+      <label for="gbpRate" class="w-60 font-medium text-right mr-4" id="gbpRateLabel">GBP/EUR Price:</label>
+      <input type="number" id="gbpRate" step="any" value="1.00000" readonly
         class="border rounded px-3 py-1 w-full" />
     </div>
 
@@ -102,15 +110,88 @@
   </div>
 
   <script>
+    function updateExchangeRates() {
+      // Fetch the latest exchange rates from the API.
+      fetch('https://api.exchangerate-api.com/v4/latest/EUR')
+        .then(response => response.json())
+        .then(data => {
+          if (data && data.rates) {
+            const eurUsdRate = data.rates.USD;
+            const eurGbpRate = data.rates.GBP;
+            const gbpUsdRate = eurUsdRate / eurGbpRate; // Calculate GBP/USD rate
+
+            // Update EUR/USD field only if visible.
+            if (document.getElementById('eurUsdRow').style.display !== "none") {
+              document.getElementById('eurUsdPrice').value = eurUsdRate;
+            }
+
+            // Update GBP rate field if visible
+            if (document.getElementById('gbpRateRow').style.display !== "none") {
+              const depositCurrency = document.getElementById('depositCurrency').value;
+              document.getElementById('gbpRate').value = depositCurrency === "EUR" ? eurGbpRate : gbpUsdRate;
+            }
+          }
+        })
+        .catch(error => {
+          console.error("Error fetching exchange rates:", error);
+        });
+    }
+
+    function resetResults() {
+      // Reset all result fields
+      document.getElementById('moneyRiskResult').textContent = "—";
+      document.getElementById('lotsResult').textContent = "—";
+      document.getElementById('unitsResult').textContent = "—";
+      document.getElementById('indexResult').textContent = "—";
+      
+      // Hide both result sections initially
+      document.getElementById('forexResults').style.display = "none";
+      document.getElementById('indexResults').style.display = "none";
+    }
+
     function updateVisibility() {
       const instrument = document.getElementById('instrument').value;
-      if (instrument === "GBP/USD") {
+      const depositCurrency = document.getElementById('depositCurrency').value;
+      const pipSizeLabel = document.getElementById('pipSizeLabel');
+      const gbpRateLabel = document.getElementById('gbpRateLabel');
+      
+      // Reset results when instrument changes
+      resetResults();
+      
+      if (instrument === "EUR/USD" || instrument === "GBP/USD") {
         document.getElementById('pipRow').style.display = "flex";
-        document.getElementById('eurUsdRow').style.display = "flex";
+        // Show EUR/USD price only for GBP/USD or when using EUR deposit currency
+        document.getElementById('eurUsdRow').style.display = 
+          (instrument === "GBP/USD" || depositCurrency === "EUR") ? "flex" : "none";
+        document.getElementById('gbpRateRow').style.display = "none";
+        pipSizeLabel.textContent = `${instrument} 1 Pip Size:`;
+        
+        // Show forex results section
+        document.getElementById('forexResults').style.display = "block";
       } else {
         document.getElementById('pipRow').style.display = "none";
-        document.getElementById('eurUsdRow').style.display = "none";
+        // Show EUR/USD price for indices that need it
+        const showEurUsdRate = (
+          (instrument === "NAS100USD" && depositCurrency === "EUR") || // US index with EUR account
+          (instrument === "DAX40" && depositCurrency === "USD") ||    // EUR index with USD account
+          (instrument === "US30USD" && depositCurrency === "EUR")     // US index with EUR account
+        );
+        document.getElementById('eurUsdRow').style.display = showEurUsdRate ? "flex" : "none";
+        
+        // Show GBP rate for UK100
+        if (instrument === "UK100GBP") {
+          document.getElementById('gbpRateRow').style.display = "flex";
+          gbpRateLabel.textContent = depositCurrency === "EUR" ? "GBP/EUR Price:" : "GBP/USD Price:";
+        } else {
+          document.getElementById('gbpRateRow').style.display = "none";
+        }
+        
+        // Show index results section
+        document.getElementById('indexResults').style.display = "block";
       }
+
+      // Update exchange rates after visibility changes
+      updateExchangeRates();
     }
 
     function calculateTrade() {
@@ -121,11 +202,7 @@
           if (data && data.rates) {
             const eurUsdRate = data.rates.USD;
             const eurGbpRate = data.rates.GBP;
-
-            // Update EUR/USD field only if visible.
-            if (document.getElementById('eurUsdRow').style.display !== "none") {
-              document.getElementById('eurUsdPrice').value = eurUsdRate;
-            }
+            const gbpUsdRate = eurUsdRate / eurGbpRate; // Calculate GBP/USD rate
 
             const instrument = document.getElementById('instrument').value;
             const depositCurrency = document.getElementById('depositCurrency').value;
@@ -138,18 +215,31 @@
             document.getElementById('moneyRiskResult').textContent =
               (depositCurrency === "EUR" ? "€" : "$") + moneyAtRisk.toFixed(2);
 
-            if (instrument === "GBP/USD") {
+            if (instrument === "EUR/USD" || instrument === "GBP/USD") {
               // Forex Calculation
               document.getElementById('forexResults').style.display = "block";
               document.getElementById('indexResults').style.display = "none";
               const pipSize = parseFloat(document.getElementById('pipSize').value);
               let units;
-              if (depositCurrency === "EUR") {
-                // Convert money at risk from EUR to USD using EUR/USD rate.
-                units = (moneyAtRisk * eurUsdRate) / (stopLoss * pipSize);
-              } else {
-                units = moneyAtRisk / (stopLoss * pipSize);
+              
+              if (instrument === "EUR/USD") {
+                if (depositCurrency === "EUR") {
+                  units = moneyAtRisk / (stopLoss * pipSize);
+                } else {
+                  // For USD account, no need to convert as risk is already in USD
+                  units = moneyAtRisk / (stopLoss * pipSize);
+                }
+              } else { // GBP/USD
+                // Always convert for GBP/USD regardless of account currency
+                if (depositCurrency === "EUR") {
+                  // Convert EUR to USD using EUR/USD rate
+                  units = (moneyAtRisk * eurUsdRate) / (stopLoss * pipSize);
+                } else {
+                  // USD account, no conversion needed
+                  units = moneyAtRisk / (stopLoss * pipSize);
+                }
               }
+              
               const lots = units / 100000;
               document.getElementById('unitsResult').textContent = units.toFixed(3);
               document.getElementById('lotsResult').textContent = lots.toFixed(3);
@@ -163,8 +253,14 @@
                 // For these indices: if deposit is EUR, convert using EUR/USD rate.
                 conversionRate = (depositCurrency === "EUR") ? eurUsdRate : 1;
               } else if (instrument === "UK100GBP") {
-                // UK100GBP: if deposit is EUR use EUR/GBP rate; if USD, use (EUR/GBP)/(EUR/USD)
-                conversionRate = (depositCurrency === "EUR") ? eurGbpRate : (eurGbpRate / eurUsdRate);
+                // UK100GBP: always convert using appropriate rates
+                if (depositCurrency === "EUR") {
+                  // Convert EUR to GBP using EUR/GBP rate
+                  conversionRate = eurGbpRate;
+                } else {
+                  // Convert USD to GBP using (EUR/GBP)/(EUR/USD)
+                  conversionRate = eurGbpRate / eurUsdRate;
+                }
               } else if (instrument === "DAX40") {
                 // DAX40: priced in EUR; if deposit is USD, convert using inverse of EUR/USD.
                 conversionRate = (depositCurrency === "EUR") ? 1 : (1 / eurUsdRate);
@@ -182,7 +278,14 @@
         });
     }
 
-    window.addEventListener('load', updateVisibility);
+    // Initialize on page load
+    window.addEventListener('load', () => {
+      updateVisibility();
+      updateExchangeRates();
+    });
+
+    // Add event listeners
+    document.getElementById('depositCurrency').addEventListener('change', updateVisibility);
   </script>
 </body>
 
