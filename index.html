@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>Trading Calculator</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 p-6">
+  <div class="max-w-3xl mx-auto bg-white shadow-lg rounded p-6">
+    <h1 class="text-2xl font-semibold mb-6">Trading Calculator</h1>
+
+    <!-- Instrument Selection -->
+    <div class="mb-4 flex items-center">
+      <label for="instrument" class="w-60 font-medium text-right mr-4">Instrument:</label>
+      <select id="instrument" onchange="updateVisibility()" class="border rounded px-3 py-1 w-full">
+        <option value="GBP/USD">GBP/USD (Forex)</option>
+        <option value="NAS100USD">NAS100USD (Index)</option>
+        <option value="UK100GBP">UK100GBP (Index)</option>
+        <option value="DAX40">DAX40 (Index)</option>
+        <option value="US30USD">US30USD (Index)</option>
+      </select>
+    </div>
+
+    <!-- Deposit Currency Selection -->
+    <div class="mb-4 flex items-center">
+      <label for="depositCurrency" class="w-60 font-medium text-right mr-4">Deposit Currency:</label>
+      <select id="depositCurrency" class="border rounded px-3 py-1 w-full">
+        <option value="EUR">Euro (EUR)</option>
+        <option value="USD">US Dollar (USD)</option>
+      </select>
+    </div>
+
+    <!-- Common Input: Stop Loss (pips/points) -->
+    <div class="mb-4 flex items-center">
+      <label for="stopLoss" class="w-60 font-medium text-right mr-4">Stop Loss (pips/points):</label>
+      <input type="number" id="stopLoss" step="0.1" value="5.1" class="border rounded px-3 py-1 w-full" />
+    </div>
+
+    <!-- Forex-only Input: Pip Size -->
+    <div class="mb-4 flex items-center" id="pipRow">
+      <label for="pipSize" class="w-60 font-medium text-right mr-4">GBP/USD 1 Pip Size:</label>
+      <input type="number" id="pipSize" step="0.0000001" value="0.0001" class="border rounded px-3 py-1 w-full" />
+    </div>
+
+    <!-- Forex-only Input: EUR/USD Price -->
+    <div class="mb-4 flex items-center" id="eurUsdRow">
+      <label for="eurUsdPrice" class="w-60 font-medium text-right mr-4">EUR/USD Price:</label>
+      <input type="number" id="eurUsdPrice" step="any" value="1.00000" readonly
+        class="border rounded px-3 py-1 w-full" />
+    </div>
+
+    <!-- Account Balance -->
+    <div class="mb-4 flex items-center">
+      <label for="accountBalance" class="w-60 font-medium text-right mr-4">Account Balance:</label>
+      <input type="number" id="accountBalance" step="1" value="80000" class="border rounded px-3 py-1 w-full" />
+    </div>
+
+    <!-- Risk Percent -->
+    <div class="mb-6 flex items-center">
+      <label for="riskPercent" class="w-60 font-medium text-right mr-4">Risk (%):</label>
+      <input type="number" id="riskPercent" step="0.01" value="0.25" class="border rounded px-3 py-1 w-full" />
+    </div>
+
+    <!-- Calculate Button -->
+    <div class="mb-6">
+      <button class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
+        onclick="calculateTrade()">Calculate</button>
+    </div>
+
+    <!-- Output -->
+    <div>
+      <!-- Money at risk -->
+      <div class="mb-4 flex items-center">
+        <label class="w-60 font-medium text-right mr-4">Money at risk:</label>
+        <span id="moneyRiskResult" class="font-bold text-gray-800">—</span>
+      </div>
+
+      <!-- Forex Results -->
+      <div id="forexResults" class="mb-4" style="display: none;">
+        <div class="mb-2 flex items-center">
+          <label class="w-60 font-medium text-right mr-4">Lots (trade size):</label>
+          <span id="lotsResult" class="font-bold text-gray-800">—</span>
+        </div>
+        <div class="flex items-center">
+          <label class="w-60 font-medium text-right mr-4">Units (trade size):</label>
+          <span id="unitsResult" class="font-bold text-gray-800">—</span>
+        </div>
+      </div>
+
+      <!-- Index Results -->
+      <div id="indexResults" class="mb-4" style="display: none;">
+        <div class="flex items-center">
+          <label class="w-60 font-medium text-right mr-4">Index Position Size:</label>
+          <span id="indexResult" class="font-bold text-gray-800">—</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    function updateVisibility() {
+      const instrument = document.getElementById('instrument').value;
+      if (instrument === "GBP/USD") {
+        document.getElementById('pipRow').style.display = "flex";
+        document.getElementById('eurUsdRow').style.display = "flex";
+      } else {
+        document.getElementById('pipRow').style.display = "none";
+        document.getElementById('eurUsdRow').style.display = "none";
+      }
+    }
+
+    function calculateTrade() {
+      // Fetch the latest exchange rates from the API.
+      fetch('https://api.exchangerate-api.com/v4/latest/EUR')
+        .then(response => response.json())
+        .then(data => {
+          if (data && data.rates) {
+            const eurUsdRate = data.rates.USD;
+            const eurGbpRate = data.rates.GBP;
+
+            // Update EUR/USD field only if visible.
+            if (document.getElementById('eurUsdRow').style.display !== "none") {
+              document.getElementById('eurUsdPrice').value = eurUsdRate;
+            }
+
+            const instrument = document.getElementById('instrument').value;
+            const depositCurrency = document.getElementById('depositCurrency').value;
+            const accountBalance = parseFloat(document.getElementById('accountBalance').value);
+            const riskPercent = parseFloat(document.getElementById('riskPercent').value);
+            const stopLoss = parseFloat(document.getElementById('stopLoss').value);
+
+            // Calculate money at risk (in deposit currency)
+            const moneyAtRisk = accountBalance * (riskPercent / 100);
+            document.getElementById('moneyRiskResult').textContent =
+              (depositCurrency === "EUR" ? "€" : "$") + moneyAtRisk.toFixed(2);
+
+            if (instrument === "GBP/USD") {
+              // Forex Calculation
+              document.getElementById('forexResults').style.display = "block";
+              document.getElementById('indexResults').style.display = "none";
+              const pipSize = parseFloat(document.getElementById('pipSize').value);
+              let units;
+              if (depositCurrency === "EUR") {
+                // Convert money at risk from EUR to USD using EUR/USD rate.
+                units = (moneyAtRisk * eurUsdRate) / (stopLoss * pipSize);
+              } else {
+                units = moneyAtRisk / (stopLoss * pipSize);
+              }
+              const lots = units / 100000;
+              document.getElementById('unitsResult').textContent = units.toFixed(3);
+              document.getElementById('lotsResult').textContent = lots.toFixed(3);
+            } else {
+              // Index Calculation
+              document.getElementById('forexResults').style.display = "none";
+              document.getElementById('indexResults').style.display = "block";
+              let conversionRate = 1; // Default for indices already in EUR.
+
+              if (instrument === "NAS100USD" || instrument === "US30USD") {
+                // For these indices: if deposit is EUR, convert using EUR/USD rate.
+                conversionRate = (depositCurrency === "EUR") ? eurUsdRate : 1;
+              } else if (instrument === "UK100GBP") {
+                // UK100GBP: if deposit is EUR use EUR/GBP rate; if USD, use (EUR/GBP)/(EUR/USD)
+                conversionRate = (depositCurrency === "EUR") ? eurGbpRate : (eurGbpRate / eurUsdRate);
+              } else if (instrument === "DAX40") {
+                // DAX40: priced in EUR; if deposit is USD, convert using inverse of EUR/USD.
+                conversionRate = (depositCurrency === "EUR") ? 1 : (1 / eurUsdRate);
+              }
+              const indexPosition = (moneyAtRisk * conversionRate) / stopLoss;
+              document.getElementById('indexResult').textContent = indexPosition.toFixed(3);
+            }
+          } else {
+            alert("Could not fetch exchange rates.");
+          }
+        })
+        .catch(error => {
+          console.error("Error fetching exchange rates:", error);
+          alert("Error fetching exchange rates. Please try again.");
+        });
+    }
+
+    window.addEventListener('load', updateVisibility);
+  </script>
+</body>
+
+</html>
