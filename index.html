@@ -39,107 +39,128 @@
   </style>
 </head>
 
-<body class="bg-stone-100 h-screen flex items-center">
-  <div class="max-w-2xl mx-auto bg-white shadow rounded-xl p-6">
-    <h1 class="text-xl font-semibold mb-6 text-center">Trading Calculator</h1>
+<body class="bg-stone-100 h-screen flex flex-col">
+  <div class="flex-grow flex items-center">
+    <div class="max-w-2xl mx-auto bg-white shadow rounded-xl p-4">
+      <h1 class="text-lg font-semibold mb-6 text-center">Trading Calculator</h1>
 
-    <!-- Instrument Selection -->
-    <div class="mb-4 flex items-center">
-      <label for="instrument" class="w-60 font-semibold antialiased text-stone-800 mb-2 mr-4 text-right">Instrument:</label>
-      <select id="instrument" onchange="updateVisibility()" class="border rounded px-3 py-1 w-full ring ring-transparent hover:ring-stone-800/10 focus:ring-stone-800/10 hover:border-stone-800">
-        <option value="EUR/USD">EUR/USD (Forex)</option>
-        <option value="GBP/USD">GBP/USD (Forex)</option>
-        <option value="NAS100USD">NAS100USD (Index)</option>
-        <option value="UK100GBP">UK100GBP (Index)</option>
-        <option value="DAX40">DAX40 (Index)</option>
-        <option value="US30USD">US30USD (Index)</option>
-      </select>
-    </div>
-
-    <!-- Deposit Currency Selection -->
-    <div class="mb-4 flex items-center">
-      <label for="depositCurrency" class="w-60 font-semibold antialiased text-stone-800 mb-2 mr-4 text-right">Deposit Currency:</label>
-      <select id="depositCurrency" class="border rounded px-3 py-1 w-full ring ring-transparent hover:ring-stone-800/10 focus:ring-stone-800/10 hover:border-stone-800">
-        <option value="EUR">Euro (EUR)</option>
-        <option value="USD">US Dollar (USD)</option>
-      </select>
-    </div>
-
-    <!-- Common Input: Stop Loss (pips/points) -->
-    <div class="mb-4 flex items-center">
-      <label for="stopLoss" class="w-60 font-semibold antialiased text-stone-800 mb-2 mr-4 text-right">Stop Loss (pips/points):</label>
-      <input type="number" id="stopLoss" step="0.1" value="5.1" class="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 dark:text-white placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer" />
-    </div>
-
-    <!-- Forex-only Input: Pip Size -->
-    <div class="mb-4 flex items-center" id="pipRow">
-      <label for="pipSize" class="w-60 font-semibold antialiased text-stone-800 mb-2 mr-4 text-right" id="pipSizeLabel">EUR/USD 1 Pip Size:</label>
-      <input type="number" id="pipSize" step="0.0000001" value="0.0001" class="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 dark:text-white placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer" />
-    </div>
-
-    <!-- Forex-only Input: EUR/USD Price -->
-    <div class="mb-4 flex items-center" id="eurUsdRow">
-      <label for="eurUsdPrice" class="w-60 font-semibold antialiased text-stone-800 mb-2 mr-4 text-right">EUR/USD Price:</label>
-      <input type="number" id="eurUsdPrice" step="any" value="1.00000" readonly
-        class="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 dark:text-white placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer" />
-    </div>
-
-    <!-- GBP Rate Input -->
-    <div class="mb-4 flex items-center" id="gbpRateRow">
-      <label for="gbpRate" class="w-60 font-semibold antialiased text-stone-800 mb-2 mr-4 text-right" id="gbpRateLabel">GBP/EUR Price:</label>
-      <input type="number" id="gbpRate" step="any" value="1.00000" readonly
-        class="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 dark:text-white placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer" />
-    </div>
-
-    <!-- Account Balance -->
-    <div class="mb-4 flex items-center">
-      <label for="accountBalance" class="w-60 font-semibold antialiased text-stone-800 mb-2 mr-4 text-right">Account Balance:</label>
-      <input type="number" id="accountBalance" step="1" value="80000" class="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 dark:text-white placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer" />
-    </div>
-
-    <!-- Risk Percent -->
-    <div class="mb-6 flex items-center">
-      <label for="riskPercent" class="w-60 font-semibold antialiased text-stone-800 mb-2 mr-4 text-right">Risk (%):</label>
-      <input type="number" id="riskPercent" step="0.01" value="0.25" class="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 dark:text-white placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer" />
-    </div>
-
-    <!-- Calculate Button -->
-    <div class="mb-6">
-      <button class="w-full inline-flex items-center justify-center border font-sans font-medium text-center duration-300 ease-in focus:shadow-none text-sm py-1.5 px-3 shadow-sm hover:shadow bg-stone-800 relative bg-gradient-to-b from-stone-700 to-stone-800 border-stone-900 text-white rounded-lg hover:bg-gradient-to-b hover:from-stone-800 hover:to-stone-800 hover:border-stone-900 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none transition antialiased" onclick="calculateTrade()">
-        Calculate
-      </button>
-    </div>
-
-    <!-- Output -->
-    <div>
-      <!-- Money at risk -->
+      <!-- Instrument Selection -->
       <div class="mb-4 flex items-center">
-        <label class="w-60 font-semibold antialiased text-stone-800 mb-2 mr-4 text-right">Money at risk:</label>
-        <span id="moneyRiskResult" class="font-bold text-stone-800">—</span>
+        <label for="instrument" class="w-60 font-semibold text-sm antialiased text-stone-800 mr-4 text-right">Instrument:</label>
+        <div class="relative w-full">
+          <select id="instrument" onchange="updateVisibility()" class="w-full cursor-pointer appearance-none aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 dark:text-white placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer">
+            <option value="EUR/USD">EUR/USD (Forex)</option>
+            <option value="GBP/USD">GBP/USD (Forex)</option>
+            <option value="NAS100USD">NAS100USD (Index)</option>
+            <option value="UK100GBP">UK100GBP (Index)</option>
+            <option value="DAX40">DAX40 (Index)</option>
+            <option value="US30USD">US30USD (Index)</option>
+          </select>
+          <svg class="absolute right-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+          </svg>
+        </div>
       </div>
 
-      <!-- Forex Results -->
-      <div id="forexResults" class="mb-4" style="display: none;">
+      <!-- Deposit Currency Selection -->
+      <div class="mb-4 flex items-center">
+        <label for="depositCurrency" class="w-60 font-semibold text-sm antialiased text-stone-800 mr-4 text-right">Deposit Currency:</label>
+        <div class="relative w-full">
+          <select id="depositCurrency"
+            class="w-full appearance-none cursor-pointer aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 dark:text-white placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer">
+            <option value="EUR">Euro (EUR)</option>
+            <option value="USD">US Dollar (USD)</option>
+          </select>
+          <svg class="absolute right-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 pointer-events-none"
+            xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd"
+              d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+              clip-rule="evenodd" />
+          </svg>
+        </div>
+      </div>
+
+      <!-- Common Input: Stop Loss (pips/points) -->
+      <div class="mb-4 flex items-center">
+        <label for="stopLoss" class="w-60 font-semibold text-sm antialiased text-stone-800 mr-4 text-right">Stop Loss (pips/points):</label>
+        <input type="number" id="stopLoss" step="0.1" value="5.1" class="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 dark:text-white placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer" />
+      </div>
+
+      <!-- Forex-only Input: Pip Size -->
+      <div class="mb-4 flex items-center" id="pipRow">
+        <label for="pipSize" class="w-60 font-semibold text-sm antialiased text-stone-800 mr-4 text-right" id="pipSizeLabel">EUR/USD 1 Pip Size:</label>
+        <input type="number" id="pipSize" step="0.0000001" value="0.0001" class="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 dark:text-white placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer" />
+      </div>
+
+      <!-- Forex-only Input: EUR/USD Price -->
+      <div class="mb-4 flex items-center" id="eurUsdRow">
+        <label for="eurUsdPrice" class="w-60 font-semibold text-sm antialiased text-stone-800 mr-4 text-right">EUR/USD Price:</label>
+        <input type="number" id="eurUsdPrice" step="any" value="1.00000" readonly
+          class="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 dark:text-white placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer" />
+      </div>
+
+      <!-- GBP Rate Input -->
+      <div class="mb-4 flex items-center" id="gbpRateRow">
+        <label for="gbpRate" class="w-60 font-semibold text-sm antialiased text-stone-800 mr-4 text-right" id="gbpRateLabel">GBP/EUR Price:</label>
+        <input type="number" id="gbpRate" step="any" value="1.00000" readonly
+          class="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 dark:text-white placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer" />
+      </div>
+
+      <!-- Account Balance -->
+      <div class="mb-4 flex items-center">
+        <label for="accountBalance" class="w-60 font-semibold text-sm antialiased text-stone-800 mr-4 text-right">Account Balance:</label>
+        <input type="number" id="accountBalance" step="1" value="80000" class="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 dark:text-white placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer" />
+      </div>
+
+      <!-- Risk Percent -->
+      <div class="mb-6 flex items-center">
+        <label for="riskPercent" class="w-60 font-semibold text-sm antialiased text-stone-800 mr-4 text-right">Risk (%):</label>
+        <input type="number" id="riskPercent" step="0.01" value="0.25" class="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 dark:text-white placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer" />
+      </div>
+
+      <!-- Calculate Button -->
+      <div class="mb-6">
+        <button class="w-full inline-flex items-center justify-center border font-sans font-medium text-center duration-300 ease-in focus:shadow-none text-sm py-1.5 px-3 shadow-sm hover:shadow bg-stone-800 relative bg-gradient-to-b from-stone-700 to-stone-800 border-stone-900 text-white rounded-lg hover:bg-gradient-to-b hover:from-stone-800 hover:to-stone-800 hover:border-stone-900 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none transition antialiased" onclick="calculateTrade()">
+          Calculate
+        </button>
+      </div>
+
+      <!-- Output -->
+      <div>
+        <!-- Money at risk -->
         <div class="mb-2 flex items-center">
-          <label class="w-60 font-semibold antialiased text-stone-800 mb-2 mr-4 text-right">Lots (trade size):</label>
-          <span id="lotsResult" class="font-bold text-stone-800">—</span>
+          <label class="w-60 font-semibold text-sm antialiased text-stone-800 mb-2 mr-4 text-right">Money at risk:</label>
+          <span id="moneyRiskResult" class="font-bold text-stone-800">—</span>
         </div>
-        <div class="flex items-center">
-          <label class="w-60 font-semibold antialiased text-stone-800 mb-2 mr-4 text-right">Units (trade size):</label>
-          <span id="unitsResult" class="font-bold text-stone-800">—</span>
+
+        <!-- Forex Results -->
+        <div id="forexResults" class="mb-2" style="display: none;">
+          <div class="mb-2 flex items-center">
+            <label class="w-60 font-semibold text-sm antialiased text-stone-800 mb-2 mr-4 text-right">Lots (trade size):</label>
+            <span id="lotsResult" class="font-bold text-stone-800">—</span>
+          </div>
+          <div class="flex items-center">
+            <label class="w-60 font-semibold text-sm antialiased text-stone-800 mb-2 mr-4 text-right">Units (trade size):</label>
+            <span id="unitsResult" class="font-bold text-stone-800">—</span>
+          </div>
+        </div>
+
+        <!-- Index Results -->
+        <div id="indexResults" class="mb-2" style="display: none;">
+          <div class="flex items-center">
+            <label class="w-60 font-semibold text-sm antialiased text-stone-800 mb-2 mr-4 text-right">Index Position Size:</label>
+            <span id="indexResult" class="font-bold text-stone-800">—</span>
+          </div>
         </div>
       </div>
 
-      <!-- Index Results -->
-      <div id="indexResults" class="mb-4" style="display: none;">
-        <div class="flex items-center">
-          <label class="w-60 font-semibold antialiased text-stone-800 mb-2 mr-4 text-right">Index Position Size:</label>
-          <span id="indexResult" class="font-bold text-stone-800">—</span>
-        </div>
-      </div>
     </div>
-
   </div>
+
+  <!-- Footer -->
+  <footer class="py-4 text-center text-stone-600 text-sm mt-auto">
+    <p>UI components powered by <a href="https://www.creative-tim.com/david-ui/" target="_blank" class="text-stone-800 hover:underline font-medium">David UI</a></p>
+  </footer>
 
   <script>
     function updateExchangeRates() {
