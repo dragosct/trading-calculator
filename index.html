@@ -161,7 +161,13 @@
   <!-- API Request Counter -->
   <div class="max-w-2xl mx-auto mt-4 text-center">
     <p class="text-sm text-stone-600">
-      API Requests Remaining: <span id="apiRequests" class="font-semibold">75</span>/100 (Monthly)
+      API Requests Remaining: <span id="apiRequests" class="font-semibold">100</span>/100 (Monthly)
+      <button 
+        onclick="resetApiCounter()" 
+        class="ml-2 inline-flex items-center justify-center border font-sans font-medium text-center duration-300 ease-in focus:shadow-none text-xs py-1 px-2 shadow-sm hover:shadow bg-stone-800 relative bg-gradient-to-b from-stone-700 to-stone-800 border-stone-900 text-white rounded-lg hover:bg-gradient-to-b hover:from-stone-800 hover:to-stone-800 hover:border-stone-900 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none transition antialiased"
+      >
+        Reset Counter
+      </button>
     </p>
   </div>
 
@@ -279,6 +285,14 @@
     // API Request Counter
     const MAX_REQUESTS = 100;
     let remainingRequests = parseInt(localStorage.getItem('tradingCalculator_remainingRequests')) || MAX_REQUESTS;
+
+    function resetApiCounter() {
+      if (confirm("Are you sure you want to reset the API request counter? This should only be done when you have a new API key or when the month has reset.")) {
+        remainingRequests = MAX_REQUESTS;
+        localStorage.setItem('tradingCalculator_remainingRequests', remainingRequests);
+        document.getElementById('apiRequests').textContent = remainingRequests;
+      }
+    }
 
     function updateApiCounter() {
       remainingRequests--;
