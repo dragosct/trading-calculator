@@ -158,12 +158,56 @@
     </div>
   </div>
 
+  <!-- API Request Counter -->
+  <div class="max-w-2xl mx-auto mt-4 text-center">
+    <p class="text-sm text-stone-600">
+      API Requests Remaining: <span id="apiRequests" class="font-semibold">75</span>/100 (Monthly)
+    </p>
+  </div>
+
   <!-- Footer -->
   <footer class="py-4 text-center text-stone-600 text-sm mt-auto">
     <p>UI components powered by <a href="https://www.creative-tim.com/david-ui/" target="_blank" class="text-stone-800 hover:underline font-medium">David UI</a></p>
   </footer>
 
   <script>
+    // Load saved values from localStorage
+    function loadSavedValues() {
+      const savedInstrument = localStorage.getItem('tradingCalculator_instrument');
+      const savedDepositCurrency = localStorage.getItem('tradingCalculator_depositCurrency');
+      const savedAccountBalance = localStorage.getItem('tradingCalculator_accountBalance');
+      const savedRiskPercent = localStorage.getItem('tradingCalculator_riskPercent');
+
+      if (savedInstrument) document.getElementById('instrument').value = savedInstrument;
+      if (savedDepositCurrency) document.getElementById('depositCurrency').value = savedDepositCurrency;
+      if (savedAccountBalance) document.getElementById('accountBalance').value = savedAccountBalance;
+      if (savedRiskPercent) document.getElementById('riskPercent').value = savedRiskPercent;
+    }
+
+    // Save values to localStorage
+    function saveValue(key, value) {
+      localStorage.setItem(`tradingCalculator_${key}`, value);
+    }
+
+    // Add event listeners for saving values
+    document.getElementById('instrument').addEventListener('change', (e) => {
+      saveValue('instrument', e.target.value);
+      updateVisibility();
+    });
+
+    document.getElementById('depositCurrency').addEventListener('change', (e) => {
+      saveValue('depositCurrency', e.target.value);
+      updateVisibility();
+    });
+
+    document.getElementById('accountBalance').addEventListener('change', (e) => {
+      saveValue('accountBalance', e.target.value);
+    });
+
+    document.getElementById('riskPercent').addEventListener('change', (e) => {
+      saveValue('riskPercent', e.target.value);
+    });
+
     function updateExchangeRates() {
       // This function is now only used to update the display fields
       const eurUsdRate = parseFloat(document.getElementById('eurUsdPrice').value);
@@ -232,8 +276,32 @@
       }
     }
 
+    // API Request Counter
+    const MAX_REQUESTS = 100;
+    let remainingRequests = parseInt(localStorage.getItem('tradingCalculator_remainingRequests')) || MAX_REQUESTS;
+
+    function updateApiCounter() {
+      remainingRequests--;
+      localStorage.setItem('tradingCalculator_remainingRequests', remainingRequests);
+      document.getElementById('apiRequests').textContent = remainingRequests;
+      
+      if (remainingRequests <= 0) {
+        alert("You have reached your monthly API request limit. Please try again next month.");
+      }
+    }
+
+    // Initialize the counter display
+    document.getElementById('apiRequests').textContent = remainingRequests;
+
     function calculateTrade() {
       const API_KEY = 'd24db344fe66cf6bddc2b762851d14ef';
+      
+      // Check if we have remaining requests
+      if (remainingRequests <= 0) {
+        alert("You have reached your monthly API request limit. Please try again next month.");
+        return;
+      }
+
       // Fetch the latest exchange rates from Exchange Rates API
       fetch(`https://api.exchangeratesapi.io/v1/latest?access_key=${API_KEY}&base=EUR&symbols=USD,GBP`)
         .then(response => response.json())
@@ -241,6 +309,9 @@
           console.log(data); // Log the data as in the example
           
           if (data && data.rates) {
+            // Update API counter after successful request
+            updateApiCounter();
+            
             const eurUsdRate = data.rates.USD;
             const eurGbpRate = data.rates.GBP;
             const gbpUsdRate = eurUsdRate / eurGbpRate;
@@ -341,11 +412,9 @@
 
     // Initialize on page load
     window.addEventListener('load', () => {
+      loadSavedValues();
       updateVisibility();
     });
-
-    // Add event listeners
-    document.getElementById('depositCurrency').addEventListener('change', updateVisibility);
   </script>
 </body>
 
