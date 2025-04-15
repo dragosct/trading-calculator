@@ -308,121 +308,131 @@
     document.getElementById('apiRequests').textContent = remainingRequests;
 
     function calculateTrade() {
-      const API_KEY = 'd24db344fe66cf6bddc2b762851d14ef';
-      
-      // Check if we have remaining requests
-      if (remainingRequests <= 0) {
-        alert("You have reached your monthly API request limit. Please try again next month.");
-        return;
-      }
+        const API_KEY = 'd24db344fe66cf6bddc2b762851d14ef';
 
-      // Fetch the latest exchange rates from Exchange Rates API
-      fetch(`https://api.exchangeratesapi.io/v1/latest?access_key=${API_KEY}&base=EUR&symbols=USD,GBP`)
-        .then(response => response.json())
-        .then(data => {
-          console.log(data); // Log the data as in the example
-          
-          if (data && data.rates) {
-            // Update API counter after successful request
-            updateApiCounter();
-            
-            const eurUsdRate = data.rates.USD;
-            const eurGbpRate = data.rates.GBP;
-            const gbpUsdRate = eurUsdRate / eurGbpRate;
-          
-            console.log('EUR/USD rate:', eurUsdRate);
-            console.log('EUR/GBP rate:', eurGbpRate);
-            console.log('GBP/USD rate:', gbpUsdRate);
+        // Check if we have remaining requests
+        if (remainingRequests <= 0) {
+          alert("You have reached your monthly API request limit. Please try again next month.");
+          return;
+        }
 
-            // Update the rate display fields
-            if (document.getElementById('eurUsdRow').style.display !== "none") {
-              document.getElementById('eurUsdPrice').value = eurUsdRate.toFixed(5);
-            }
-            if (document.getElementById('gbpRateRow').style.display !== "none") {
-              const depositCurrency = document.getElementById('depositCurrency').value;
-              const rate = depositCurrency === "EUR" ? eurGbpRate : gbpUsdRate;
-              document.getElementById('gbpRate').value = rate.toFixed(5);
-            }
+        const instrument = document.getElementById('instrument').value;
+        const depositCurrency = document.getElementById('depositCurrency').value;
+        const accountBalance = parseFloat(document.getElementById('accountBalance').value);
+        const riskPercent = parseFloat(document.getElementById('riskPercent').value);
+        const stopLoss = parseFloat(document.getElementById('stopLoss').value);
 
-            const instrument = document.getElementById('instrument').value;
-            const depositCurrency = document.getElementById('depositCurrency').value;
-            const accountBalance = parseFloat(document.getElementById('accountBalance').value);
-            const riskPercent = parseFloat(document.getElementById('riskPercent').value);
-            const stopLoss = parseFloat(document.getElementById('stopLoss').value);
+        // Calculate money at risk (in deposit currency)
+        const moneyAtRisk = accountBalance * (riskPercent / 100);
+        document.getElementById('moneyRiskResult').textContent =
+          (depositCurrency === "EUR" ? "€" : "$") + moneyAtRisk.toFixed(2);
 
-            // Calculate money at risk (in deposit currency)
-            const moneyAtRisk = accountBalance * (riskPercent / 100);
-            document.getElementById('moneyRiskResult').textContent =
-              (depositCurrency === "EUR" ? "€" : "$") + moneyAtRisk.toFixed(2);
+        // For DAX40 with EUR account, we don't need to call the API
+        if (instrument === "DAX40" && depositCurrency === "EUR") {
+          document.getElementById('forexResults').style.display = "none";
+          document.getElementById('indexResults').style.display = "block";
 
-            if (instrument === "EUR/USD" || instrument === "GBP/USD") {
-              // Forex Calculation
-              document.getElementById('forexResults').style.display = "block";
-              document.getElementById('indexResults').style.display = "none";
-              const pipSize = parseFloat(document.getElementById('pipSize').value);
-              let units;
-              
-              // For both EUR/USD and GBP/USD, the calculation is the same
-              if (depositCurrency === "EUR") {
-                // Convert EUR to USD using EUR/USD rate, then calculate units
-                units = (moneyAtRisk * eurUsdRate) / (stopLoss * pipSize);
+          // For EUR account with DAX40, just divide by stop loss
+          const indexPosition = moneyAtRisk / stopLoss;
+          document.getElementById('indexResult').textContent = indexPosition.toFixed(3);
+          return;
+        }
+
+        // Fetch the latest exchange rates from Exchange Rates API
+        fetch(`https://api.exchangeratesapi.io/v1/latest?access_key=${API_KEY}&base=EUR&symbols=USD,GBP`)
+          .then(response => response.json())
+          .then(data => {
+            console.log(data); // Log the data as in the example
+
+            if (data && data.rates) {
+              // Update API counter after successful request
+              updateApiCounter();
+
+              const eurUsdRate = data.rates.USD;
+              const eurGbpRate = data.rates.GBP;
+              const gbpUsdRate = eurUsdRate / eurGbpRate;
+
+              console.log('EUR/USD rate:', eurUsdRate);
+              console.log('EUR/GBP rate:', eurGbpRate);
+              console.log('GBP/USD rate:', gbpUsdRate);
+
+              // Update the rate display fields
+              if (document.getElementById('eurUsdRow').style.display !== "none") {
+                document.getElementById('eurUsdPrice').value = eurUsdRate.toFixed(5);
+              }
+              if (document.getElementById('gbpRateRow').style.display !== "none") {
+                const rate = depositCurrency === "EUR" ? eurGbpRate : gbpUsdRate;
+                document.getElementById('gbpRate').value = rate.toFixed(5);
+              }
+
+              if (instrument === "EUR/USD" || instrument === "GBP/USD") {
+                // Forex Calculation
+                document.getElementById('forexResults').style.display = "block";
+                document.getElementById('indexResults').style.display = "none";
+                const pipSize = parseFloat(document.getElementById('pipSize').value);
+                let units;
+
+                // For both EUR/USD and GBP/USD, the calculation is the same
+                if (depositCurrency === "EUR") {
+                  // Convert EUR to USD using EUR/USD rate, then calculate units
+                  units = (moneyAtRisk * eurUsdRate) / (stopLoss * pipSize);
+                } else {
+                  // USD account, no conversion needed
+                  units = moneyAtRisk / (stopLoss * pipSize);
+                }
+
+                const lots = units / 100000;
+                document.getElementById('unitsResult').textContent = units.toFixed(3);
+                document.getElementById('lotsResult').textContent = lots.toFixed(3);
               } else {
-                // USD account, no conversion needed
-                units = moneyAtRisk / (stopLoss * pipSize);
-              }
-              
-              const lots = units / 100000;
-              document.getElementById('unitsResult').textContent = units.toFixed(3);
-              document.getElementById('lotsResult').textContent = lots.toFixed(3);
-            } else {
-              // Index Calculation
-              document.getElementById('forexResults').style.display = "none";
-              document.getElementById('indexResults').style.display = "block";
-              let indexPosition;
+                // Index Calculation
+                document.getElementById('forexResults').style.display = "none";
+                document.getElementById('indexResults').style.display = "block";
+                let indexPosition;
 
-              if (instrument === "NAS100USD" || instrument === "US30USD") {
-                // For these indices: if deposit is EUR, convert EUR to USD first.
-                if (depositCurrency === "EUR") {
-                  // Convert EUR to USD using EUR/USD rate
-                  const moneyAtRiskInUSD = moneyAtRisk * eurUsdRate;
-                  indexPosition = moneyAtRiskInUSD / stopLoss;
-                } else {
-                  // For USD account, just divide by stop loss
-                  indexPosition = moneyAtRisk / stopLoss;
+                if (instrument === "NAS100USD" || instrument === "US30USD") {
+                  // For these indices: if deposit is EUR, convert EUR to USD first.
+                  if (depositCurrency === "EUR") {
+                    // Convert EUR to USD using EUR/USD rate
+                    const moneyAtRiskInUSD = moneyAtRisk * eurUsdRate;
+                    indexPosition = moneyAtRiskInUSD / stopLoss;
+                  } else {
+                    // For USD account, just divide by stop loss
+                    indexPosition = moneyAtRisk / stopLoss;
+                  }
+                } else if (instrument === "UK100GBP") {
+                  // UK100GBP: always convert using appropriate rates
+                  if (depositCurrency === "EUR") {
+                    // Convert EUR to GBP using EUR/GBP rate
+                    const moneyAtRiskInGBP = moneyAtRisk * eurGbpRate;
+                    indexPosition = moneyAtRiskInGBP / stopLoss;
+                  } else {
+                    // Convert USD to GBP using GBP/USD rate
+                    const moneyAtRiskInGBP = moneyAtRisk / gbpUsdRate;
+                    indexPosition = moneyAtRiskInGBP / stopLoss;
+                  }
+                } else if (instrument === "DAX40") {
+                  // DAX40: priced in EUR
+                  if (depositCurrency === "EUR") {
+                    // For EUR account, just divide by stop loss
+                    indexPosition = moneyAtRisk / stopLoss;
+                  } else {
+                    // For USD account, convert EUR to USD first
+                    const moneyAtRiskInEUR = moneyAtRisk / eurUsdRate;
+                    indexPosition = moneyAtRiskInEUR / stopLoss;
+                  }
                 }
-              } else if (instrument === "UK100GBP") {
-                // UK100GBP: always convert using appropriate rates
-                if (depositCurrency === "EUR") {
-                  // Convert EUR to GBP using EUR/GBP rate
-                  const moneyAtRiskInGBP = moneyAtRisk * eurGbpRate;
-                  indexPosition = moneyAtRiskInGBP / stopLoss;
-                } else {
-                  // Convert USD to GBP using GBP/USD rate
-                  const moneyAtRiskInGBP = moneyAtRisk / gbpUsdRate;
-                  indexPosition = moneyAtRiskInGBP / stopLoss;
-                }
-              } else if (instrument === "DAX40") {
-                // DAX40: priced in EUR
-                if (depositCurrency === "EUR") {
-                  // For EUR account, just divide by stop loss
-                  indexPosition = moneyAtRisk / stopLoss;
-                } else {
-                  // For USD account, convert EUR to USD first
-                  const moneyAtRiskInEUR = moneyAtRisk / eurUsdRate;
-                  indexPosition = moneyAtRiskInEUR / stopLoss;
-                }
+                document.getElementById('indexResult').textContent = indexPosition.toFixed(3);
               }
-              document.getElementById('indexResult').textContent = indexPosition.toFixed(3);
+            } else {
+              alert("Could not fetch exchange rates.");
             }
-          } else {
-            alert("Could not fetch exchange rates.");
-          }
-        })
-        .catch(error => {
-          console.error("Error fetching exchange rates:", error);
-          alert("Error fetching exchange rates. Please try again.");
-        });
-    }
+          })
+          .catch(error => {
+            console.error("Error fetching exchange rates:", error);
+            alert("Error fetching exchange rates. Please try again.");
+          });
+      }
 
     // Initialize on page load
     window.addEventListener('load', () => {
