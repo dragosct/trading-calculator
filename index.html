@@ -142,6 +142,12 @@
           <span id="moneyRiskResult" class="font-bold text-stone-800">—</span>
         </div>
 
+        <!-- Potential TP (2RR) -->
+        <div class="mb-2 flex items-center">
+          <label class="w-60 font-semibold text-sm antialiased text-stone-800 mr-4 text-right">Potential TP (2RR):</label>
+          <span id="potentialTpResult" class="font-bold text-stone-800">—</span>
+        </div>
+
         <!-- Forex Results -->
         <div id="forexResults" class="mb-2" style="display: none;">
           <div class="mb-2 flex items-center">
@@ -293,6 +299,11 @@
         const moneyAtRisk = accountBalance * (riskPercent / 100);
         document.getElementById('moneyRiskResult').textContent =
           (depositCurrency === "EUR" ? "€" : "$") + moneyAtRisk.toFixed(2);
+
+        // Calculate potential TP at 2:1 RR
+        const potentialTp = moneyAtRisk * 2;
+        document.getElementById('potentialTpResult').textContent =
+          (depositCurrency === "EUR" ? "€" : "$") + potentialTp.toFixed(2);
 
         // For DAX40 with EUR account, we don't need to call the API
         if (instrument === "DAX40" && depositCurrency === "EUR") {
