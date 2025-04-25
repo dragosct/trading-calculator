@@ -52,6 +52,7 @@
           <select id="instrument" onchange="updateVisibility()" class="w-full cursor-pointer appearance-none aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 dark:text-white placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer">
             <option value="EUR/USD">EUR/USD (Forex)</option>
             <option value="GBP/USD">GBP/USD (Forex)</option>
+            <option value="EUR/AUD">EUR/AUD (Forex)</option>
             <option value="NAS100USD">NAS100USD (Index)</option>
             <option value="UK100GBP">UK100GBP (Index)</option>
             <option value="DAX40">DAX40 (Index)</option>
@@ -97,6 +98,13 @@
       <div class="mb-4 flex items-center" id="eurUsdRow">
         <label for="eurUsdPrice" class="w-60 font-semibold text-sm antialiased text-stone-800 mr-4 text-right">EUR/USD Price:</label>
         <input type="number" id="eurUsdPrice" step="any" value="1.00000" readonly
+          class="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 dark:text-white placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer" />
+      </div>
+
+      <!-- EUR/AUD Price Input -->
+      <div class="mb-4 flex items-center" id="eurAudRow">
+        <label for="eurAudPrice" class="w-60 font-semibold text-sm antialiased text-stone-800 mr-4 text-right">EUR/AUD Price:</label>
+        <input type="number" id="eurAudPrice" step="any" value="1.00000" readonly
           class="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 dark:text-white placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer" />
       </div>
 
@@ -236,11 +244,14 @@
       // Reset results when instrument changes
       resetResults();
       
-      if (instrument === "EUR/USD" || instrument === "GBP/USD") {
+      if (instrument === "EUR/USD" || instrument === "GBP/USD" || instrument === "EUR/AUD") {
         document.getElementById('pipRow').style.display = "flex";
-        // Show EUR/USD price only for GBP/USD or when using EUR deposit currency
+        // Show EUR/USD price only for GBP/USD or when using EUR deposit currency with EUR/USD
         document.getElementById('eurUsdRow').style.display = 
-          (instrument === "GBP/USD" || depositCurrency === "EUR") ? "flex" : "none";
+          ((instrument === "GBP/USD" || instrument === "EUR/USD") && depositCurrency === "EUR") ? "flex" : "none";
+        // Show EUR/AUD price for EUR/AUD pair
+        document.getElementById('eurAudRow').style.display = 
+          instrument === "EUR/AUD" ? "flex" : "none";
         document.getElementById('gbpRateRow').style.display = "none";
         pipSizeLabel.textContent = `${instrument} 1 Pip Size:`;
         
@@ -295,7 +306,7 @@
         }
 
         // Fetch the latest exchange rates from Exchange Rates API
-        fetch(`https://api.exchangeratesapi.io/v1/latest?access_key=${API_KEY}&base=EUR&symbols=USD,GBP`)
+        fetch(`https://api.exchangeratesapi.io/v1/latest?access_key=${API_KEY}&base=EUR&symbols=USD,GBP,AUD`)
           .then(response => response.json())
           .then(data => {
             console.log(data); // Log the data as in the example
@@ -303,35 +314,56 @@
             if (data && data.rates) {
               const eurUsdRate = data.rates.USD;
               const eurGbpRate = data.rates.GBP;
+              const eurAudRate = data.rates.AUD;
               const gbpUsdRate = eurUsdRate / eurGbpRate;
+              const audUsdRate = eurUsdRate / eurAudRate;
 
               console.log('EUR/USD rate:', eurUsdRate);
               console.log('EUR/GBP rate:', eurGbpRate);
+              console.log('EUR/AUD rate:', eurAudRate);
               console.log('GBP/USD rate:', gbpUsdRate);
+              console.log('AUD/USD rate:', audUsdRate);
 
               // Update the rate display fields
               if (document.getElementById('eurUsdRow').style.display !== "none") {
                 document.getElementById('eurUsdPrice').value = eurUsdRate.toFixed(5);
+              }
+              if (document.getElementById('eurAudRow').style.display !== "none") {
+                document.getElementById('eurAudPrice').value = eurAudRate.toFixed(5);
               }
               if (document.getElementById('gbpRateRow').style.display !== "none") {
                 const rate = depositCurrency === "EUR" ? eurGbpRate : gbpUsdRate;
                 document.getElementById('gbpRate').value = rate.toFixed(5);
               }
 
-              if (instrument === "EUR/USD" || instrument === "GBP/USD") {
+              if (instrument === "EUR/USD" || instrument === "GBP/USD" || instrument === "EUR/AUD") {
                 // Forex Calculation
                 document.getElementById('forexResults').style.display = "block";
                 document.getElementById('indexResults').style.display = "none";
                 const pipSize = parseFloat(document.getElementById('pipSize').value);
                 let units;
 
-                // For both EUR/USD and GBP/USD, the calculation is the same
-                if (depositCurrency === "EUR") {
-                  // Convert EUR to USD using EUR/USD rate, then calculate units
-                  units = (moneyAtRisk * eurUsdRate) / (stopLoss * pipSize);
-                } else {
-                  // USD account, no conversion needed
-                  units = moneyAtRisk / (stopLoss * pipSize);
+                if (instrument === "EUR/AUD") {
+                  const eurAudPrice = parseFloat(document.getElementById('eurAudPrice').value);
+                  if (depositCurrency === "EUR") {
+                    // For EUR account with EUR/AUD
+                    // Formula: (Money at Risk * Exchange Rate) / (Stop Loss * Pip Size)
+                    units = (moneyAtRisk * eurAudPrice) / (stopLoss * pipSize);
+                  } else {
+                    // For USD account with EUR/AUD
+                    // Convert USD to EUR first, then calculate units
+                    const moneyAtRiskInEUR = moneyAtRisk / eurAudPrice;
+                    units = (moneyAtRiskInEUR * eurAudPrice) / (stopLoss * pipSize);
+                  }
+                } else if (instrument === "EUR/USD" || instrument === "GBP/USD") {
+                  // For both EUR/USD and GBP/USD, the calculation is the same
+                  if (depositCurrency === "EUR") {
+                    // Convert EUR to USD using EUR/USD rate, then calculate units
+                    units = (moneyAtRisk * eurUsdRate) / (stopLoss * pipSize);
+                  } else {
+                    // USD account, no conversion needed
+                    units = moneyAtRisk / (stopLoss * pipSize);
+                  }
                 }
 
                 const lots = units / 100000;
